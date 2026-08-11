@@ -1,0 +1,88 @@
+services:
+  postgres:
+    image: timescale/timescaledb-ha:pg16
+    container_name: nexus-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: nexus_admin
+      POSTGRES_PASSWORD: ${POSTGRES_ADMIN_PASSWORD:?Variable requise, pas de valeur par défaut en production}
+      POSTGRES_DB: nexus_db
+    volumes:
+      - nexus_postgres_data:/home/postgres/pgdata/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nexus_admin -d nexus_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: nexus-redis
+    restart: unless-stopped
+    volumes:
+      - nexus_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ./apps/backend-nestjs
+    container_name: nexus-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      # DATABASE_URL/REDIS_HOST pointent vers les noms de service Docker
+      # (postgres/redis), pas localhost — différence clé par rapport au
+      # .env de développement local.
+      DATABASE_URL: postgresql://app_runtime:${APP_RUNTIME_PASSWORD}@postgres:5432/nexus_db?schema=public
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      APP_RUNTIME_PASSWORD: ${APP_RUNTIME_PASSWORD:?Variable requise}
+      JWT_PRIVATE_KEY: ${JWT_PRIVATE_KEY:?Variable requise}
+      JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY:?Variable requise}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      KOBOTOOLBOX_API_KEY: ${KOBOTOOLBOX_API_KEY:-}
+      WEBHOOK_SHARED_SECRET: ${WEBHOOK_SHARED_SECRET:-}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-no-reply@nexus-workspace.local}
+    volumes:
+      - nexus_exports:/app/storage/exports
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  web:
+    build:
+      context: ./apps/web
+    container_name: nexus-web
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
+
+networks:
+  default:
+    name: nexus-network
+
+volumes:
+  nexus_postgres_data:
+  nexus_redis_data:
+  nexus_exports:

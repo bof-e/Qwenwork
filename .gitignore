@@ -1,0 +1,76 @@
+```
+# Dependencies
+node_modules/
+.npm/
+.yarn/
+
+# Build outputs
+dist/
+build/
+target/
+coverage/
+htmlcov/
+
+# TypeScript/JavaScript
+*.tsbuildinfo
+*.js.map
+*.jsx.map
+*.ts.map
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+.env
+.env.local
+.env.*
+
+# Prisma
+prisma/migrations/
+prisma/*.db
+
+# NestJS
+.nest/
+.nyc_output/
+
+# Frontend
+*.bundle.js
+*.min.js
+*.css.map
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+
+# Docker
+.dockerignore
+
+# Database
+*.db
+*.db-journal
+
+# Package manager
+package-lock.json
+yarn.lock
+
+# Turbo
+.turbo/
+```
